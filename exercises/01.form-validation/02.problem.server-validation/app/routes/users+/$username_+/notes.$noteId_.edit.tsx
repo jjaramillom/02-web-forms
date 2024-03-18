@@ -1,5 +1,5 @@
 import { json, redirect, type DataFunctionArgs } from '@remix-run/node'
-import { Form, useLoaderData } from '@remix-run/react'
+import { Form, useActionData, useLoaderData } from '@remix-run/react'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { floatingToolbarClassName } from '#app/components/floating-toolbar.tsx'
 import { Button } from '#app/components/ui/button.tsx'
@@ -9,6 +9,17 @@ import { StatusButton } from '#app/components/ui/status-button.tsx'
 import { Textarea } from '#app/components/ui/textarea.tsx'
 import { db, updateNote } from '#app/utils/db.server.ts'
 import { invariantResponse, useIsSubmitting } from '#app/utils/misc.tsx'
+
+interface ActionErrors {
+	fieldErrors: {
+		title: Array<string>
+		content: Array<string>
+	}
+	formData: Array<string>
+}
+
+const MAX_TITLE_LENGTH = 2_0
+const MAX_CONTENT_LENGTH = 10_000
 
 export async function loader({ params }: DataFunctionArgs) {
 	const note = db.note.findFirst({
@@ -35,34 +46,59 @@ export async function action({ request, params }: DataFunctionArgs) {
 	invariantResponse(typeof title === 'string', 'title must be a string')
 	invariantResponse(typeof content === 'string', 'content must be a string')
 
-	// 🐨 create an errors object here
-	// 🐨 validate the requirements for the title and content and add any errors
-	// to the errors object
-	// 🐨 if there are any errors, then return a json response with the errors
-	// and a 400 status code
+	const errors: ActionErrors = {
+		fieldErrors: {
+			title: [],
+			content: [],
+		},
+		formData: [],
+	}
+	if (title.length > MAX_TITLE_LENGTH) {
+		errors.fieldErrors.title.push(
+			`Title cannot be longer than ${MAX_TITLE_LENGTH} chars`,
+		)
+	} else if (!title.length) {
+		errors.fieldErrors.title.push(`Title cannot be empty`)
+	}
+	if (content.length > MAX_CONTENT_LENGTH) {
+		errors.fieldErrors.title.push(
+			`Content cannot be longer than ${MAX_CONTENT_LENGTH} chars`,
+		)
+	}else if (!content.length) {
+		errors.fieldErrors.title.push(`Content cannot be empty`)
+	}
+
+	if (Object.values(errors.fieldErrors).some(field => field.length)) {
+		return json({ errors }, { status: 400 })
+	}
 
 	await updateNote({ id: params.noteId, title, content })
 
 	return redirect(`/users/${params.username}/notes/${params.noteId}`)
 }
 
-// 🐨 this is a good place to stick the ErrorList component if you want to use that
+function ErrorList({ errors }: { errors?: Array<string> | null }) {
+	return errors?.length ? (
+		<ul className="flex flex-col gap-1">
+			{errors.map((error, i) => (
+				<li key={i} className="text-foreground-destructive text-[10px]">
+					{error}
+				</li>
+			))}
+		</ul>
+	) : null
+}
 
 export default function NoteEdit() {
 	const data = useLoaderData<typeof loader>()
-	// 🐨 get the actionData from useActionData here
+	const actionData = useActionData<typeof action>()
 	const isSubmitting = useIsSubmitting()
 	const formId = 'note-editor'
-
-	// 🐨 get the fieldErrors here from the actionData
 
 	return (
 		<div className="absolute inset-0">
 			<Form
 				id={formId}
-				// 🐨 to test out the server-side validation, you need to disable the
-				// client-side validation. You can do that by adding:
-				// noValidate
 				method="post"
 				className="flex h-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden px-10 pb-28 pt-12"
 			>
@@ -74,9 +110,9 @@ export default function NoteEdit() {
 							name="title"
 							defaultValue={data.note.title}
 							required
-							maxLength={100}
+							maxLength={MAX_TITLE_LENGTH}
 						/>
-						{/* 🐨 add the title error messages here */}
+						<ErrorList errors={actionData?.errors.fieldErrors.title} />
 					</div>
 					<div>
 						{/* 🦉 NOTE: this is not an accessible label, we'll get to that in the accessibility exercises */}
@@ -85,21 +121,12 @@ export default function NoteEdit() {
 							name="content"
 							defaultValue={data.note.content}
 							required
-							maxLength={10000}
+							maxLength={MAX_CONTENT_LENGTH}
 						/>
-						{/* 🐨 add content the error messages here */}
+						<ErrorList errors={actionData?.errors.fieldErrors.content} />
 					</div>
 				</div>
-				{/* 🐨 add the form error messages here */}
-				{/*
-				🦉 even though we don't really have form messages, we're going to
-				have you do it anyway so you can see how it works and to maintain
-				consistency with the codebase.
-
-				💯 If you've got extra time, think of an error you could have that would
-				be at the form level (like, maybe your content must include a word from
-				the title or something like that)
-			*/}
+				<ErrorList errors={actionData?.errors.formData} />
 			</Form>
 			<div className={floatingToolbarClassName}>
 				<Button variant="destructive" type="reset">

@@ -57,13 +57,21 @@ export default function NoteEdit() {
 						{/* 🦉 NOTE: this is not an accessible label, we'll get to that in the accessibility exercises */}
 						<Label>Title</Label>
 						{/* 🐨 add the appropriate HTML validation attributes here */}
-						<Input name="title" defaultValue={data.note.title} />
+						<Input
+							name="title"
+							defaultValue={data.note.title}
+							maxLength={100}
+						/>
 					</div>
 					<div>
 						{/* 🦉 NOTE: this is not an accessible label, we'll get to that in the accessibility exercises */}
 						<Label>Content</Label>
 						{/* 🐨 add the appropriate HTML validation attributes here */}
-						<Textarea name="content" defaultValue={data.note.content} />
+						<Textarea
+							name="content"
+							defaultValue={data.note.content}
+							maxLength={10_000}
+						/>
 					</div>
 				</div>
 			</Form>
