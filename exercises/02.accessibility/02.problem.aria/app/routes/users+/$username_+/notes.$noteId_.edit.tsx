@@ -81,9 +81,15 @@ export async function action({ request, params }: DataFunctionArgs) {
 }
 
 // 🐨 the ErrorList needs to accept an "id" string and apply it to the <ul>
-function ErrorList({ errors }: { errors?: Array<string> | null }) {
+function ErrorList({
+	errors,
+	id,
+}: {
+	id?: string
+	errors?: Array<string> | null
+}) {
 	return errors?.length ? (
-		<ul className="flex flex-col gap-1">
+		<ul id={id} className="flex flex-col gap-1">
 			{errors.map((error, i) => (
 				<li key={i} className="text-[10px] text-foreground-destructive">
 					{error}
@@ -111,13 +117,12 @@ export default function NoteEdit() {
 		actionData?.status === 'error' ? actionData.errors.formErrors : null
 	const isHydrated = useHydrated()
 
-	// 💰 you can create a couple variables here that will be useful below:
-	// formHasErrors - a boolean if there are any errors for the form
-	// formErrorId - a string that's the id for the form error or undefined if there are no errors
-	// titleHasErrors - a boolean if there are any errors for the title
-	// titleErrorId - a string that's the id for the title error or undefined if there are no errors
-	// contentHasErrors - a boolean if there are any errors for the content
-	// contentErrorId - a string that's the id for the content error or undefined if there are no errors
+	const formHasErrors = !!formErrors?.length
+	const formErrorId = formHasErrors ? 'form-error' : undefined
+	const titleHasErrors = !!fieldErrors?.title.length
+	const titleErrorId = titleHasErrors ? 'title-error' : undefined
+	const contentHasErrors = !!fieldErrors?.content.length
+	const contentErrorId = contentHasErrors ? 'content-error' : undefined
 
 	return (
 		<div className="absolute inset-0">
@@ -126,7 +131,8 @@ export default function NoteEdit() {
 				noValidate={isHydrated}
 				method="post"
 				className="flex h-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden px-10 pb-28 pt-12"
-				// 🐨 add aria-invalid and aria-describedby here
+				aria-invalid={formHasErrors || undefined}
+				aria-describedby={formErrorId}
 			>
 				<div className="flex flex-col gap-1">
 					<div>
@@ -137,11 +143,11 @@ export default function NoteEdit() {
 							defaultValue={data.note.title}
 							required
 							maxLength={titleMaxLength}
-							// 🐨 add aria-invalid and aria-describedby here
+							aria-invalid={titleHasErrors || undefined}
+							aria-describedby={titleErrorId}
 						/>
 						<div className="min-h-[32px] px-4 pb-3 pt-1">
-							{/* 🐨 add the id here */}
-							<ErrorList errors={fieldErrors?.title} />
+							<ErrorList id={titleErrorId} errors={fieldErrors?.title} />
 						</div>
 					</div>
 					<div>
@@ -152,16 +158,15 @@ export default function NoteEdit() {
 							defaultValue={data.note.content}
 							required
 							maxLength={contentMaxLength}
-							// 🐨 add aria-invalid and aria-describedby here
+							aria-invalid={contentHasErrors || undefined}
+							aria-describedby={contentErrorId}
 						/>
 						<div className="min-h-[32px] px-4 pb-3 pt-1">
-							{/* 🐨 add the id here */}
-							<ErrorList errors={fieldErrors?.content} />
+							<ErrorList id={contentErrorId} errors={fieldErrors?.content} />
 						</div>
 					</div>
 				</div>
-				{/* 🐨 add the form's error id here */}
-				<ErrorList errors={formErrors} />
+				<ErrorList id={formErrorId} errors={formErrors} />
 			</Form>
 			<div className={floatingToolbarClassName}>
 				<Button form={formId} variant="destructive" type="reset">

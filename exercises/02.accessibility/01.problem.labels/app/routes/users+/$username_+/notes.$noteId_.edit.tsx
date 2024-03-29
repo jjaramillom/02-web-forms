@@ -1,6 +1,6 @@
 import { json, redirect, type DataFunctionArgs } from '@remix-run/node'
 import { Form, useActionData, useLoaderData } from '@remix-run/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { floatingToolbarClassName } from '#app/components/floating-toolbar.tsx'
 import { Button } from '#app/components/ui/button.tsx'
@@ -109,7 +109,7 @@ export default function NoteEdit() {
 	const formErrors =
 		actionData?.status === 'error' ? actionData.errors.formErrors : null
 	const isHydrated = useHydrated()
-
+	const titleId = useId()
 	return (
 		<div className="absolute inset-0">
 			<Form
@@ -120,14 +120,9 @@ export default function NoteEdit() {
 			>
 				<div className="flex flex-col gap-1">
 					<div>
-						{/* 🐨 add an htmlFor attribute here */}
-						<Label>Title</Label>
+						<Label htmlFor={titleId}>Title</Label>
 						<Input
-							// 🐨 add an id attribute here (it should match what you set to htmlFor on the label)
-							// 🦉 the actual value itself doesn't matter, but it should be unique on the page
-							// and it should match the label's htmlFor.
-
-							// 💯 for extra credit, generate the id using React's useId() hook
+							id={titleId}
 							name="title"
 							defaultValue={data.note.title}
 							required
@@ -138,10 +133,9 @@ export default function NoteEdit() {
 						</div>
 					</div>
 					<div>
-						{/* 🐨 add an htmlFor attribute here */}
-						<Label>Content</Label>
+						<Label htmlFor="content">Content</Label>
 						<Textarea
-							// 🐨 add an id attribute here (it should match what you set to htmlFor on the label)
+							id="content"
 							name="content"
 							defaultValue={data.note.content}
 							required
