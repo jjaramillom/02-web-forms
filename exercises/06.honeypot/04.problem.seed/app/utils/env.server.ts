@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 const schema = z.object({
 	NODE_ENV: z.enum(['production', 'development', 'test'] as const),
-	// 🐨 add HONEYPOT_SECRET which should just be a string
+	HONEYPOT_SECRET: z.string(),
 })
 
 declare global {

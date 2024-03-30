@@ -7,13 +7,11 @@ import { Form } from '@remix-run/react'
 import { Button } from '#app/components/ui/button.tsx'
 import { Input } from '#app/components/ui/input.tsx'
 import { Label } from '#app/components/ui/label.tsx'
+import { invariantResponse } from '#app/utils/misc.js'
 
 export async function action({ request }: DataFunctionArgs) {
-	// 💣 you can remove this comment once you've used the form data
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const formData = await request.formData()
-	// 🐨 throw a 400 response if the name field is filled out
-	// we'll implement signup later
+	invariantResponse(formData.get('email'), 'Invalid form data')
 	return redirect('/')
 }
 
@@ -31,13 +29,10 @@ export default function SignupRoute() {
 					method="POST"
 					className="mx-auto flex min-w-[368px] max-w-sm flex-col gap-4"
 				>
-					{/* 🐨 render a hidden div with an "name" input */}
-					{/* 🦉 think about the accessibility implications. */}
-					{/* 💯 As extra credit, make sure screen readers will ignore this field */}
-					{/*
-						💯 As extra credit, add a label to tell the user to not fill out
-						the field in case they somehow notice it.
-					*/}
+					<div className="hidden">
+						<label htmlFor="name-input">Do not fill this</label>
+						<input id="name-input" name="name" type="text" />
+					</div>
 					<div>
 						<Label htmlFor="email-input">Email</Label>
 						<Input autoFocus id="email-input" name="email" type="email" />
