@@ -81,14 +81,32 @@ const limitMultiple = process.env.TESTING ? 10_000 : 1
 // - strongRateLimit with 100 per minute. Applies to other non-GET requests
 // - generalRateLimit with 1000 per minute. Applies to everything else.
 
-app.use(
-	rateLimit({
-		windowMs: 60 * 1000,
-		limit: 1000 * limitMultiple,
-		standardHeaders: true,
-		legacyHeaders: false,
-	}),
-)
+const rateLimitDefault = {
+	windowMs: 60 * 1000,
+	limit: 1000 * limitMultiple,
+	standardHeaders: true,
+	legacyHeaders: false,
+}
+const strongestRateLimit = rateLimit({
+	...rateLimitDefault,
+	limit: 10 * limitMultiple,
+})
+const strongRateLimit = rateLimit({
+	...rateLimitDefault,
+	limit: 100 * limitMultiple,
+})
+const generalRateLimit = rateLimit({
+	...rateLimitDefault,
+	limit: 1000 * limitMultiple,
+})
+
+app.use((req, res, next) => {
+	let limiter = generalRateLimit
+	if (req.method !== 'GET' && req.method !== 'HEAD') {
+		limiter = req.path === '/signup' ? strongestRateLimit : strongRateLimit
+	}
+	return limiter(req, res, next)
+})
 
 app.all(
 	'*',
