@@ -1,5 +1,6 @@
 import {
 	conform,
+	useFieldList,
 	useFieldset,
 	useForm,
 	type FieldConfig,
@@ -64,8 +65,7 @@ const ImageFieldsetSchema = z.object({
 const NoteEditorSchema = z.object({
 	title: z.string().max(titleMaxLength),
 	content: z.string().max(contentMaxLength),
-	// 🐨 rename this to "images" and put ImageFieldsetSchema in a z.array()
-	image: ImageFieldsetSchema,
+	images: z.array(ImageFieldsetSchema),
 })
 
 export async function action({ request, params }: DataFunctionArgs) {
@@ -85,10 +85,8 @@ export async function action({ request, params }: DataFunctionArgs) {
 			status: 400,
 		})
 	}
-	// 🐨 update this to "images"
-	const { title, content, image } = submission.value
-	// 🐨 now just pass the whole images array here.
-	await updateNote({ id: params.noteId, title, content, images: [image] })
+	const { title, content, images } = submission.value
+	await updateNote({ id: params.noteId, title, content, images })
 
 	return redirect(`/users/${params.username}/notes/${params.noteId}`)
 }
@@ -126,14 +124,10 @@ export default function NoteEdit() {
 		defaultValue: {
 			title: data.note.title,
 			content: data.note.content,
-			// 🐨 rename this to "images" and pass all of them
-			// 💰 For now, set it to data.note.images.length ? data.note.images : [{}],
-			// that way if there isn't an image yet, you'll still be able to create one.
-			// We'll fix this in the next step.
-			image: data.note.images[0],
+			images: data.note.images.length ? data.note.images : [{}],
 		},
 	})
-	// 🐨 create the imageList with useFieldList here
+	const itemsList = useFieldList(form.ref, fields.images)
 
 	return (
 		<div className="absolute inset-0">
@@ -166,8 +160,13 @@ export default function NoteEdit() {
 					</div>
 					<div>
 						<Label>Image</Label>
-						{/* 🐨 render the ImageChooser inside a ul mapping the imageList into li elements */}
-						<ImageChooser config={fields.image} />
+						<ul>
+							{itemsList.map(item => (
+								<li key={item.key}>
+									<ImageChooser config={item} />
+								</li>
+							))}
+						</ul>
 					</div>
 				</div>
 				<ErrorList id={form.errorId} errors={form.errors} />

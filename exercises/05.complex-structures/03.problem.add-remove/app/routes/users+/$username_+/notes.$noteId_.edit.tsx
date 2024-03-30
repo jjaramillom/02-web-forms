@@ -3,6 +3,7 @@ import {
 	useFieldList,
 	useFieldset,
 	useForm,
+	list,
 	type FieldConfig,
 } from '@conform-to/react'
 import { getFieldsetConstraint, parse } from '@conform-to/zod'
@@ -80,8 +81,9 @@ export async function action({ request, params }: DataFunctionArgs) {
 		schema: NoteEditorSchema,
 	})
 
-	// 🐨 If the submission.intent is not "submit" then return the submission with
-	// a status of 'idle' and the submission.
+	if (submission.intent !== 'submit') {
+		return json({ status: 'idle', submission } as const)
+	}
 
 	if (!submission.value) {
 		return json({ status: 'error', submission } as const, {
@@ -140,9 +142,7 @@ export default function NoteEdit() {
 				{...form.props}
 				encType="multipart/form-data"
 			>
-				{/* 🐨 add a hidden submit button here so the first button in the form is a submit button */}
-				{/* 🦉 otherwise, when the user hits [Enter] in the title input it'll trigger the first submit button which will delete an image instead of submit the form 😬 */}
-				{/* 💰 to hide it, you can use the tailwind class name "hidden" */}
+				<button className="hidden" type="submit" />
 				<div className="flex flex-col gap-1">
 					<div>
 						<Label htmlFor={fields.title.id}>Title</Label>
@@ -167,24 +167,28 @@ export default function NoteEdit() {
 					<div>
 						<Label>Images</Label>
 						<ul className="flex flex-col gap-4">
-							{imageList.map(image => (
+							{imageList.map((image, index) => (
 								<li
 									key={image.key}
 									className="relative border-b-2 border-muted-foreground"
 								>
-									{/* 🐨 add a delete button here with list.remove and fields.images.name */}
-									{/* 💰 here's a nice className="text-foreground-destructive absolute right-0 top-0" */}
-									{/* 🐨 you can use "❌" as the button text (we don't have app icons yet) */}
-									{/* 💯 if you have extra time, consider the screen reader experience. How could you make it better? */}
+									<button
+										className="text-foreground-destructive absolute right-0 top-0"
+										{...list.remove(fields.images.name, { index })}
+									>
+										❌
+									</button>
 									<ImageChooser config={image} />
 								</li>
 							))}
 						</ul>
 					</div>
-					{/* 🐨 add a button here with list.insert and fields.images.name to add another image */}
-					{/* 💰 you'll want to set the defaultValue to "{}" (otherwise it'll default to null which is invalid according to our schema) */}
-					{/* 🐨 you can use "➕ Image" as the button text */}
-					{/* 💯 if you have extra time, consider the screen reader experience. How could you make it better? */}
+					<Button
+						className="mt-3"
+						{...list.insert(fields.images.name, { defaultValue: {} })}
+					>
+						➕ Image
+					</Button>
 				</div>
 				<ErrorList id={form.errorId} errors={form.errors} />
 			</Form>
