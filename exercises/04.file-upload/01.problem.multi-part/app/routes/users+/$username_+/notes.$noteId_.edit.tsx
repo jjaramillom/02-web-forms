@@ -1,6 +1,13 @@
 import { conform, useForm } from '@conform-to/react'
 import { getFieldsetConstraint, parse } from '@conform-to/zod'
-import { json, redirect, type DataFunctionArgs } from '@remix-run/node'
+
+import {
+	json,
+	redirect,
+	unstable_createMemoryUploadHandler as createMemoryUploadHandler,
+	unstable_parseMultipartFormData as parseMultipartFormData,
+	type DataFunctionArgs,
+} from '@remix-run/node'
 import { Form, useActionData, useLoaderData } from '@remix-run/react'
 import { useState } from 'react'
 import { z } from 'zod'
@@ -48,7 +55,12 @@ export async function action({ request, params }: DataFunctionArgs) {
 	// 🐨 switch this for parseMultipartFormData and createMemoryUploadHandler
 	// 🐨 set the `maxPartSize` setting to 3MB (💰 1024 * 1024 * 3) to prevent
 	// 🐨 users from uploading files that are too large.
-	const formData = await request.formData()
+
+	const uploadHandler = createMemoryUploadHandler({
+		maxPartSize: 1024 * 1024 * 5, // 5 MB
+	})
+	const formData = await parseMultipartFormData(request, uploadHandler)
+	const file = formData.get('file')
 	const submission = parse(formData, {
 		schema: NoteEditorSchema,
 	})
@@ -59,17 +71,17 @@ export async function action({ request, params }: DataFunctionArgs) {
 		})
 	}
 	const { title, content } = submission.value
-
 	await updateNote({
 		id: params.noteId,
 		title,
 		content,
-		// 🐨 add an images array and pass an object that has the
-		// id, file, and altText that was submitted.
-		// Right now, we're just going to grab these values straight from formData.
-		// 💰 formData.get('file'), etc.
-		// In the next step, we'll add this to the Zod schema.
-		// 🦺 TypeScript won't like this. We'll fix it in the next step, so don't worry about it.
+		images: [
+			{
+				id: formData.get('imageId') ?? '',
+				file: formData.get('file') ?? null,
+				altText: formData.get('altText') ?? null,
+			},
+		],
 	})
 
 	return redirect(`/users/${params.username}/notes/${params.noteId}`)
@@ -117,7 +129,7 @@ export default function NoteEdit() {
 				method="post"
 				className="flex h-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden px-10 pb-28 pt-12"
 				{...form.props}
-				// 🐨 add the encType="multipart/form-data" here
+				encType="multipart/form-data"
 			>
 				<div className="flex flex-col gap-1">
 					<div>
@@ -142,7 +154,7 @@ export default function NoteEdit() {
 					</div>
 					<div>
 						<Label>Image</Label>
-						{/* 🐨 render the ImageChooser and pass the note's first image as the image prop */}
+						<ImageChooser image={data.note.images[0]} />
 					</div>
 				</div>
 				<ErrorList id={form.errorId} errors={form.errors} />
@@ -164,8 +176,6 @@ export default function NoteEdit() {
 	)
 }
 
-// 💣 you can delete this linter comment once you're using the ImageChooser
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ImageChooser({
 	image,
 }: {
@@ -208,7 +218,9 @@ function ImageChooser({
 									➕
 								</div>
 							)}
-							{/* 🐨 if there's an existing image, add a hidden input with a name "imageId" and the value set to the image's id */}
+							{existingImage ? (
+								<input name={image?.id} value={image?.id} className="hidden" />
+							) : null}
 							<input
 								id="image-input"
 								aria-label="Image"
@@ -226,9 +238,9 @@ function ImageChooser({
 										setPreviewImage(null)
 									}
 								}}
-								// 🐨 add a name of "file" here:
+								name="file"
 								type="file"
-								// 🐨 add accept="image/*" here so users only upload images
+								accept="image/*"
 							/>
 						</label>
 					</div>
@@ -237,7 +249,7 @@ function ImageChooser({
 					<Label htmlFor="alt-text">Alt Text</Label>
 					<Textarea
 						id="alt-text"
-						// 🐨 add a name of "altText" here
+						name="altText"
 						defaultValue={altText}
 						onChange={e => setAltText(e.currentTarget.value)}
 					/>
