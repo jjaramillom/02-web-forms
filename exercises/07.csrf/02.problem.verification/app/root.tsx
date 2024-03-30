@@ -25,6 +25,7 @@ import tailwindStylesheetUrl from './styles/tailwind.css'
 import { csrf } from './utils/csrf.server.ts'
 import { getEnv } from './utils/env.server.ts'
 import { honeypot } from './utils/honeypot.server.ts'
+import { AuthenticityTokenProvider } from 'remix-utils/csrf/react'
 
 export const links: LinksFunction = () => {
 	return [
@@ -105,12 +106,12 @@ function App() {
 
 export default function AppWithProviders() {
 	const data = useLoaderData<typeof loader>()
-	// 🐨 wrap this in the AuthenticityTokenProvider and pass the csrfToken as
-	// the "token" prop.
 	return (
-		<HoneypotProvider {...data.honeyProps}>
-			<App />
-		</HoneypotProvider>
+		<AuthenticityTokenProvider token={data.csrfToken}>
+			<HoneypotProvider {...data.honeyProps}>
+				<App />
+			</HoneypotProvider>
+		</AuthenticityTokenProvider>
 	)
 }
 

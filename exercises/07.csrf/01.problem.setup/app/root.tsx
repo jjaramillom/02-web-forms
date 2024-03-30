@@ -1,6 +1,6 @@
 import os from 'node:os'
 import { cssBundleHref } from '@remix-run/css-bundle'
-import { json, type LinksFunction } from '@remix-run/node'
+import { type DataFunctionArgs, json, type LinksFunction } from '@remix-run/node'
 import {
 	Link,
 	Links,
@@ -18,6 +18,7 @@ import { GeneralErrorBoundary } from './components/error-boundary.tsx'
 import { KCDShop } from './kcdshop.tsx'
 import fontStylestylesheetUrl from './styles/font.css'
 import tailwindStylesheetUrl from './styles/tailwind.css'
+import { csrf } from './utils/csrf.server.ts'
 import { getEnv } from './utils/env.server.ts'
 import { honeypot } from './utils/honeypot.server.ts'
 
@@ -30,16 +31,20 @@ export const links: LinksFunction = () => {
 	].filter(Boolean)
 }
 
-export async function loader() {
+export async function loader({ request }: DataFunctionArgs) {
 	const honeyProps = honeypot.getInputProps()
-	// 🐨 get the csrfToken and csrfCookieHeader from csrf.commitToken
-	// 🐨 add the csrfToken to this object
-	// 🐨 add a 'set-cookie' header to the response with the csrfCookieHeader
-	return json({
-		username: os.userInfo().username,
-		ENV: getEnv(),
-		honeyProps,
-	})
+	const [csrfToken, csrfCookieHeader] = await csrf.commitToken(request)
+	return json(
+		{
+			username: os.userInfo().username,
+			ENV: getEnv(),
+			honeyProps,
+			csrfToken,
+		},
+		{
+			headers: csrfCookieHeader ? { 'set-cookie': csrfCookieHeader } : {},
+		},
+	)
 }
 
 function Document({ children }: { children: React.ReactNode }) {
